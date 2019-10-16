@@ -1,0 +1,59 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                         http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!--<bean name="userServiceImpl" class="com.ycz.service.UserServiceImpl"/>-->
+    <!--<bean name="roleServiceImpl" class="com.ycz.service.RoleServiceImpl"/>-->
+    <!--<bean name="permissionServiceImpl" class="com.ycz.service.PermissionServiceImpl"/>-->
+
+    <bean id="myRealm" class="com.ycz.realm.MyRealm">
+        <property name="userService" ref="userServiceImpl"/>
+        <property name="roleService" ref="roleServiceImpl"/>
+        <property name="permissionService" ref="permissionServiceImpl"/>
+        <!-- 密码比对器 -->
+        <property name="credentialsMatcher">
+            <bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+                <property name="hashAlgorithmName" value="SHA-256"/>
+                <!-- true means hex encoded, false means base64 encoded -->
+                <property name="storedCredentialsHexEncoded" value="false"/>
+                <property name="hashIterations" value="10000"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- 声明SecurityManager -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="myRealm"/>
+        <!-- 注册缓存管理器 -->
+        <property name="cacheManager" ref="cacheManager"/>
+        <!-- 注册sessionManager,其中会调度SessionDAO，将session存入Redis -->
+        <property name="sessionManager" ref="sessionManager"/>
+    </bean>
+
+    <!-- shiroFilter -->
+    <!-- 生产SpringShiroFilter
+         （ 持有shiro的过滤相关规则，可进行请求的过滤校验，校验请求是否合法 ）
+    -->
+    <bean id="shiroFilter04" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <!-- 注入核心对象 -->
+        <property name="securityManager" ref="securityManager"/>
+    </bean>
+
+    <!-- CacheManager声明 -->
+    <bean id="cacheManager" class="com.ycz.cache.MyShiroCacheManager">
+        <property name="redisTemplate" ref="redisTemplate"/>
+    </bean>
+
+    <!-- SessionManager,使用Shiro的DefaultWebSessionManager即可，其中注入自定义的SessionDAO -->
+    <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+        <!-- 注册SessionDAO,负责将Session对象存入redis -->
+        <property name="sessionDAO">
+            <bean class="com.ycz.sessiondao.MySessionDAO">
+                <property name="redisTemplate" ref="redisTemplate2"/>
+            </bean>
+        </property>
+    </bean>
+
+</beans>
